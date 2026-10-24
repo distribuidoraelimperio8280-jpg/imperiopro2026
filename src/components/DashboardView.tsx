@@ -153,61 +153,165 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // CFO View Controls
   const [topProductsMetric, setTopProductsMetric] = useState<'revenue' | 'units'>('revenue');
-  const [lineChartMetric, setLineChartMetric] = useState<'all' | 'sales' | 'collections'>('all');
+  const [lineChartMetric, setLineChartMetric] = useState<'both' | 'revenue' | 'growth' | 'collections'>('both');
 
-  // Chart Data Preparation: Last 6 Months with Margen and Cobrado
-  const getMonthlyTrends = () => {
-    const monthsMap: Record<string, { month: string; Ventas: number; Gastos: number; Cobrado: number; Margen: number }> = {};
+  // Chart Data Preparation: Last 6 Months Revenue Growth & Trends based on real Invoice Data
+  const monthlyChartData = React.useMemo(() => {
     const now = new Date();
+    const monthsMap: Record<string, {
+      month: string;
+      fullMonth: string;
+      key: string;
+      revenue: number;
+      Ventas: number;
+      growthRate: number;
+      growthAmount: number;
+      Cobrado: number;
+      paidRevenue: number;
+      pendingRevenue: number;
+      Gastos: number;
+      Margen: number;
+      invoiceCount: number;
+    }> = {};
 
+    const fallbackBaseRevenues = [18500, 21900, 20400, 24800, 28200, 32600];
+    const fallbackBaseExpenses = [11800, 13400, 12100, 14500, 15100, 16800];
+
+    // Build the 6 months in chronological order (from 5 months ago to current month)
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const monthLabel = d.toLocaleString('es-ES', { month: 'short' }).toUpperCase();
-      monthsMap[key] = { month: monthLabel, Ventas: 0, Gastos: 0, Cobrado: 0, Margen: 0 };
+      const monthLabel = d.toLocaleString('es-ES', { month: 'short' }).toUpperCase().replace('.', '');
+      const fullMonthName = d.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+      const fullMonth = fullMonthName.charAt(0).toUpperCase() + fullMonthName.slice(1);
+
+      monthsMap[key] = {
+        key,
+        month: monthLabel,
+        fullMonth,
+        revenue: 0,
+        Ventas: 0,
+        growthRate: 0,
+        growthAmount: 0,
+        Cobrado: 0,
+        paidRevenue: 0,
+        pendingRevenue: 0,
+        Gastos: 0,
+        Margen: 0,
+        invoiceCount: 0
+      };
     }
 
-    invoices.forEach((inv) => {
+    let hasRealSales = false;
+
+    // Aggregate real sales invoices by month
+    salesInvoices.forEach((inv) => {
       if (!inv.date) return;
       const key = inv.date.substring(0, 7);
       if (monthsMap[key]) {
-        monthsMap[key].Ventas += inv.total;
+        hasRealSales = true;
+        const total = Number(inv.total) || 0;
+        monthsMap[key].revenue += total;
+        monthsMap[key].Ventas += total;
+        monthsMap[key].invoiceCount += 1;
         if (inv.status === 'paid') {
-          monthsMap[key].Cobrado += inv.total;
+          monthsMap[key].Cobrado += total;
+          monthsMap[key].paidRevenue += total;
+        } else {
+          const paid = Number(inv.paidAmount) || 0;
+          monthsMap[key].Cobrado += paid;
+          monthsMap[key].paidRevenue += paid;
         }
       }
     });
 
+    // Aggregate expenses by month
     expenses.forEach((exp) => {
       if (!exp.date) return;
       const key = exp.date.substring(0, 7);
       if (monthsMap[key]) {
-        monthsMap[key].Gastos += exp.amount;
+        monthsMap[key].Gastos += Number(exp.amount) || 0;
       }
     });
 
-    const list = Object.values(monthsMap).map(m => ({
-      ...m,
-      Margen: Math.max(0, m.Ventas - m.Gastos)
-    }));
+    const list = Object.values(monthsMap);
 
-    // If no invoices exist in database, provide realistic distribution for immediate CFO analysis
-    const hasData = list.some(item => item.Ventas > 0 || item.Gastos > 0);
-    if (!hasData) {
-      return [
-        { month: 'ABR', Ventas: 18500, Gastos: 11800, Cobrado: 16200, Margen: 6700 },
-        { month: 'MAY', Ventas: 21900, Gastos: 13400, Cobrado: 19800, Margen: 8500 },
-        { month: 'JUN', Ventas: 20400, Gastos: 12100, Cobrado: 18900, Margen: 8300 },
-        { month: 'JUL', Ventas: 24800, Gastos: 14500, Cobrado: 22400, Margen: 10300 },
-        { month: 'AGO', Ventas: 28200, Gastos: 15100, Cobrado: 26500, Margen: 13100 },
-        { month: 'SEP', Ventas: 32600, Gastos: 16800, Cobrado: 29800, Margen: 15800 }
-      ];
+    // If no real sales exist in database yet (e.g. empty or fresh demo state), provide baseline progression
+    if (!hasRealSales) {
+      list.forEach((item, idx) => {
+        item.revenue = fallbackBaseRevenues[idx] || 20000;
+        item.Ventas = item.revenue;
+        item.Cobrado = Math.round(item.revenue * 0.88);
+        item.paidRevenue = item.Cobrado;
+        item.Gastos = fallbackBaseExpenses[idx] || 12000;
+        item.invoiceCount = 8 + idx * 3;
+      });
+    }
+
+    // Compute Margen and MoM Revenue Growth Rate (%)
+    for (let i = 0; i < list.length; i++) {
+      list[i].pendingRevenue = Math.max(0, list[i].revenue - list[i].paidRevenue);
+      list[i].Margen = Math.max(0, list[i].revenue - list[i].Gastos);
+
+      if (i === 0) {
+        list[i].growthRate = 0;
+        list[i].growthAmount = 0;
+      } else {
+        const prev = list[i - 1].revenue;
+        const curr = list[i].revenue;
+        const diff = curr - prev;
+        list[i].growthAmount = diff;
+        list[i].growthRate = prev > 0 
+          ? Number(((diff / prev) * 100).toFixed(1)) 
+          : (curr > 0 ? 100 : 0);
+      }
     }
 
     return list;
-  };
+  }, [salesInvoices, expenses]);
 
-  const monthlyChartData = getMonthlyTrends();
+  // Overall 6-Month Revenue Growth Summary Statistics
+  const revenueGrowthStats = React.useMemo(() => {
+    const list = monthlyChartData;
+    if (list.length === 0) {
+      return {
+        totalRevenue6m: 0,
+        overallGrowthPercent: 0,
+        avgMonthlyRevenue: 0,
+        bestMonth: { month: 'N/A', fullMonth: 'N/A', revenue: 0 },
+        latestGrowthRate: 0,
+        totalInvoices6m: 0
+      };
+    }
+
+    const totalRevenue6m = list.reduce((sum, m) => sum + m.revenue, 0);
+    const avgMonthlyRevenue = totalRevenue6m / list.length;
+    const totalInvoices6m = list.reduce((sum, m) => sum + m.invoiceCount, 0);
+
+    const firstMonthRev = list[0]?.revenue || 0;
+    const lastMonthRev = list[list.length - 1]?.revenue || 0;
+    const overallGrowthPercent = firstMonthRev > 0
+      ? Number((((lastMonthRev - firstMonthRev) / firstMonthRev) * 100).toFixed(1))
+      : (lastMonthRev > 0 ? 100 : 0);
+
+    const latestGrowthRate = list[list.length - 1]?.growthRate || 0;
+
+    let bestMonth = list[0];
+    list.forEach((m) => {
+      if (m.revenue > bestMonth.revenue) {
+        bestMonth = m;
+      }
+    });
+
+    return {
+      totalRevenue6m,
+      overallGrowthPercent,
+      avgMonthlyRevenue,
+      bestMonth,
+      latestGrowthRate,
+      totalInvoices6m
+    };
+  }, [monthlyChartData]);
 
   // Top Selling Products of Current Month (or all sales if month is starting)
   const topProductsData = React.useMemo(() => {
@@ -724,127 +828,231 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* 2-Column Responsive Grid: LineChart + BarChart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* 1. GRÁFICO DE LÍNEAS: Tendencia de Ventas Mensual */}
+          {/* 1. GRÁFICO DE LÍNEAS: Crecimiento de Ingresos (Últimos 6 Meses con Recharts) */}
           <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
+                  <span className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-700 flex items-center justify-center border border-sky-300/40">
                     <TrendingUp className="w-4 h-4" />
                   </span>
                   <div>
-                    <h3 className="font-black text-slate-900 text-base">
-                      Tendencia de Ventas Mensual
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-slate-900 text-base">
+                        Crecimiento de Ingresos (Últimos 6 Meses)
+                      </h3>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                        revenueGrowthStats.overallGrowthPercent >= 0
+                          ? 'bg-emerald-500/10 text-emerald-800 border-emerald-300/40'
+                          : 'bg-rose-500/10 text-rose-800 border-rose-300/40'
+                      }`}>
+                        {revenueGrowthStats.overallGrowthPercent >= 0 ? `+${revenueGrowthStats.overallGrowthPercent}%` : `${revenueGrowthStats.overallGrowthPercent}%`} en 6 meses
+                      </span>
+                    </div>
                     <p className="text-xs text-slate-500 font-medium">
-                      Evolución de facturación frente a cobranza y gastos
+                      Evolución de facturación de ventas y tasa de crecimiento intermensual basada en facturas
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Line Filters Toggle */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto">
+              <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl self-start sm:self-auto border border-slate-200/50">
                 <button
-                  onClick={() => setLineChartMetric('all')}
+                  onClick={() => setLineChartMetric('both')}
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    lineChartMetric === 'all'
+                    lineChartMetric === 'both'
                       ? 'bg-white text-slate-900 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
+                  title="Ver Ingresos en B/. y Tasa de Crecimiento en %"
                 >
                   Completo
                 </button>
                 <button
-                  onClick={() => setLineChartMetric('sales')}
+                  onClick={() => setLineChartMetric('revenue')}
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    lineChartMetric === 'sales'
+                    lineChartMetric === 'revenue'
                       ? 'bg-white text-sky-600 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
+                  title="Ver únicamente Facturación de Ingresos en Balboas"
                 >
-                  Solo Ventas
+                  Solo Ingresos ($)
+                </button>
+                <button
+                  onClick={() => setLineChartMetric('growth')}
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    lineChartMetric === 'growth'
+                      ? 'bg-white text-emerald-600 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Ver la curva de porcentaje de crecimiento MoM"
+                >
+                  Crecimiento (%)
                 </button>
                 <button
                   onClick={() => setLineChartMetric('collections')}
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     lineChartMetric === 'collections'
-                      ? 'bg-white text-emerald-600 shadow-2xs'
+                      ? 'bg-white text-amber-600 shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
+                  title="Comparativa de facturado vs recaudado"
                 >
-                  Ventas vs Cobro
+                  Facturado vs Cobro
                 </button>
               </div>
             </div>
 
-            {/* LineChart Render */}
-            <div className="h-72 w-full pt-2">
+            {/* Quick Metrics Summary Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-1">
+              <div className="bg-slate-50/80 border border-slate-200/60 p-2.5 rounded-xl">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Facturación 6 Meses</span>
+                <span className="font-mono font-black text-slate-900 text-xs sm:text-sm mt-0.5 block">
+                  {currencySymbol} {revenueGrowthStats.totalRevenue6m.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="bg-slate-50/80 border border-slate-200/60 p-2.5 rounded-xl">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Promedio Mensual</span>
+                <span className="font-mono font-black text-sky-800 text-xs sm:text-sm mt-0.5 block">
+                  {currencySymbol} {revenueGrowthStats.avgMonthlyRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="bg-slate-50/80 border border-slate-200/60 p-2.5 rounded-xl">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Mes Récord</span>
+                <span className="font-bold text-slate-900 text-xs sm:text-sm mt-0.5 truncate block" title={`${revenueGrowthStats.bestMonth.fullMonth} (${currencySymbol} ${revenueGrowthStats.bestMonth.revenue.toLocaleString()})`}>
+                  {revenueGrowthStats.bestMonth.month} <span className="font-mono text-emerald-700">({currencySymbol}{Math.round(revenueGrowthStats.bestMonth.revenue / 1000)}k)</span>
+                </span>
+              </div>
+              <div className="bg-slate-50/80 border border-slate-200/60 p-2.5 rounded-xl">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Total Facturas (6M)</span>
+                <span className="font-mono font-black text-slate-800 text-xs sm:text-sm mt-0.5 block">
+                  {revenueGrowthStats.totalInvoices6m} facturas
+                </span>
+              </div>
+            </div>
+
+            {/* LineChart Render using Recharts */}
+            <div className="h-72 w-full pt-1">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyChartData} margin={{ top: 12, right: 15, left: -15, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <LineChart data={monthlyChartData} margin={{ top: 12, right: 18, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.7} />
                   <XAxis 
                     dataKey="month" 
-                    tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} 
+                    tick={{ fontSize: 11, fill: '#64748b', fontWeight: 700 }} 
                     axisLine={{ stroke: '#cbd5e1' }} 
                     tickLine={false} 
                   />
+                  {/* Left Axis for Revenue ($) */}
                   <YAxis 
+                    yAxisId="left"
                     tick={{ fontSize: 10, fill: '#64748b' }} 
                     axisLine={false} 
                     tickLine={false} 
                     tickFormatter={(val) => `${currencySymbol}${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
                   />
+                  {/* Right Axis for Growth Rate (%) */}
+                  {(lineChartMetric === 'both' || lineChartMetric === 'growth') && (
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
+                      tick={{ fontSize: 10, fill: '#10b981' }} 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tickFormatter={(val) => `${val > 0 ? '+' : ''}${val}%`}
+                    />
+                  )}
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#0f172a', 
-                      borderRadius: '12px', 
-                      color: '#fff', 
-                      fontSize: '12px', 
-                      border: 'none', 
-                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)' 
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const item = payload[0]?.payload;
+                      if (!item) return null;
+                      return (
+                        <div className="bg-slate-900/90 backdrop-blur-md text-white border border-slate-700/70 p-3 rounded-xl shadow-xl text-xs space-y-1.5 min-w-[210px]">
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 font-bold">
+                            <span className="text-sky-300 font-extrabold">{item.fullMonth || label}</span>
+                            <span className="text-slate-400 text-[10px]">{item.invoiceCount} facturas</span>
+                          </div>
+                          <div className="flex justify-between items-center text-slate-300 pt-0.5">
+                            <span>Ingresos Facturados:</span>
+                            <span className="font-mono font-black text-white">
+                              {currencySymbol} {Number(item.revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-slate-300">
+                            <span>Crecimiento MoM:</span>
+                            <span className={`font-mono font-black ${item.growthRate >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {item.growthRate >= 0 ? `+${item.growthRate}%` : `${item.growthRate}%`}
+                              {item.growthAmount !== 0 && (
+                                <span className="text-[10px] text-slate-400 ml-1">
+                                  ({item.growthAmount > 0 ? '+' : ''}{currencySymbol}{Math.round(item.growthAmount)})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-slate-300">
+                            <span>Cobranza Efectiva:</span>
+                            <span className="font-mono font-bold text-amber-300">
+                              {currencySymbol} {Number(item.paidRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {item.pendingRevenue > 0 && (
+                            <div className="flex justify-between items-center text-slate-400 text-[10.5px]">
+                              <span>Saldo Pendiente:</span>
+                              <span className="font-mono text-slate-300">
+                                {currencySymbol} {Number(item.pendingRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
                     }}
-                    formatter={(val: any, name: any) => [`${currencySymbol} ${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, name]}
                   />
                   <Legend 
                     wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} 
                   />
 
-                  {/* Facturación Mensual Line */}
-                  <Line 
-                    type="monotone" 
-                    dataKey="Ventas" 
-                    name="Ventas Facturadas" 
-                    stroke="#0284c7" 
-                    strokeWidth={3.5} 
-                    dot={{ r: 4, strokeWidth: 2, fill: '#ffffff', stroke: '#0284c7' }} 
-                    activeDot={{ r: 7, stroke: '#0284c7', strokeWidth: 2 }} 
-                  />
-
-                  {/* Cobranza Efectiva Line */}
-                  {(lineChartMetric === 'all' || lineChartMetric === 'collections') && (
+                  {/* Facturación Mensual de Ventas Line */}
+                  {(lineChartMetric === 'both' || lineChartMetric === 'revenue' || lineChartMetric === 'collections') && (
                     <Line 
+                      yAxisId="left"
                       type="monotone" 
-                      dataKey="Cobrado" 
-                      name="Cobranza Efectiva" 
-                      stroke="#10b981" 
-                      strokeWidth={2.5} 
-                      strokeDasharray="4 4" 
-                      dot={{ r: 3.5, strokeWidth: 2, fill: '#ffffff', stroke: '#10b981' }} 
-                      activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }} 
+                      dataKey="revenue" 
+                      name="Ingresos Facturados (B/.)" 
+                      stroke="#3894d2" 
+                      strokeWidth={3.5} 
+                      dot={{ r: 4.5, strokeWidth: 2, fill: '#ffffff', stroke: '#3894d2' }} 
+                      activeDot={{ r: 7, stroke: '#0284c7', strokeWidth: 2 }} 
                     />
                   )}
 
-                  {/* Gastos Operativos Line */}
-                  {lineChartMetric === 'all' && (
+                  {/* Tasa de Crecimiento MoM Line (%) */}
+                  {(lineChartMetric === 'both' || lineChartMetric === 'growth') && (
                     <Line 
+                      yAxisId={lineChartMetric === 'growth' ? 'left' : 'right'}
                       type="monotone" 
-                      dataKey="Gastos" 
-                      name="Gastos Operativos" 
-                      stroke="#f43f5e" 
-                      strokeWidth={2} 
-                      dot={{ r: 3, strokeWidth: 1.5, fill: '#ffffff', stroke: '#f43f5e' }} 
-                      activeDot={{ r: 5 }} 
+                      dataKey="growthRate" 
+                      name="Crecimiento MoM (%)" 
+                      stroke="#10b981" 
+                      strokeWidth={2.5} 
+                      strokeDasharray="4 4" 
+                      dot={{ r: 4, strokeWidth: 2, fill: '#ffffff', stroke: '#10b981' }} 
+                      activeDot={{ r: 6, stroke: '#059669', strokeWidth: 2 }} 
+                    />
+                  )}
+
+                  {/* Cobranza Efectiva Line */}
+                  {lineChartMetric === 'collections' && (
+                    <Line 
+                      yAxisId="left"
+                      type="monotone" 
+                      dataKey="paidRevenue" 
+                      name="Cobranza Efectiva (B/.)" 
+                      stroke="#f59e0b" 
+                      strokeWidth={2.5} 
+                      dot={{ r: 3.5, strokeWidth: 2, fill: '#ffffff', stroke: '#f59e0b' }} 
+                      activeDot={{ r: 6, stroke: '#d97706', strokeWidth: 2 }} 
                     />
                   )}
                 </LineChart>
@@ -853,19 +1061,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* LineChart Summary Pills */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50 p-2.5 rounded-xl">
-                <span className="text-[10px] font-bold text-slate-500 uppercase block">Promedio Mensual</span>
-                <span className="font-mono font-black text-slate-900 mt-0.5 block">
-                  {currencySymbol} {cfoMonthlyMetrics.avgMonthlySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="bg-slate-50 p-2.5 rounded-xl">
-                <span className="text-[10px] font-bold text-slate-500 uppercase block">Venta Último Mes</span>
+              <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/50">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Facturación Último Mes</span>
                 <span className="font-mono font-black text-sky-700 mt-0.5 block">
                   {currencySymbol} {cfoMonthlyMetrics.latestSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="bg-slate-50 p-2.5 rounded-xl col-span-2 sm:col-span-1">
+              <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/50">
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Crecimiento Último Mes</span>
+                <span className={`font-mono font-black mt-0.5 block ${revenueGrowthStats.latestGrowthRate >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {revenueGrowthStats.latestGrowthRate >= 0 ? `+${revenueGrowthStats.latestGrowthRate}%` : `${revenueGrowthStats.latestGrowthRate}%`}
+                </span>
+              </div>
+              <div className="bg-slate-50/80 p-2.5 rounded-xl col-span-2 sm:col-span-1 border border-slate-200/50">
                 <span className="text-[10px] font-bold text-slate-500 uppercase block">Cobrado Último Mes</span>
                 <span className="font-mono font-black text-emerald-700 mt-0.5 block">
                   {currencySymbol} {cfoMonthlyMetrics.latestCollections.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
