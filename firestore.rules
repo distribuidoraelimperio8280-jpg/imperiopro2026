@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && (request.auth.uid == userId || (request.auth.token.email != null && resource.data.userEmail == request.auth.token.email));
+    }
+
+    function isIncomingOwner(userId) {
+      return isSignedIn() && (request.auth.uid == userId || (request.auth.token.email != null && request.resource.data.userEmail == request.auth.token.email));
+    }
+
+    // Invoice validation
+
+    function isValidInvoice(data) {
+      return data.id is string;
+    }
+    function isValidContact(data) {
+      return data.id is string;
+    }
+    function isValidProduct(data) {
+      return data.id is string;
+    }
+    function isValidExpense(data) {
+      return data.id is string;
+    }
+    function isValidQuote(data) {
+      return data.id is string;
+    }
+    function isValidTask(data) {
+      return data.id is string;
+    }
+    function isValidCreditNote(data) {
+      return data.id is string;
+    }
+    function isValidCompanyProfile(data) {
+      return true; // ID may be implicit (uid)
+    }
+
+    // Collections Rules
+    match /invoices/{invoiceId} {
+      allow get: if isSignedIn() && isValidId(invoiceId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(invoiceId) && isValidInvoice(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(invoiceId) && isValidInvoice(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(invoiceId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+    match /contacts/{contactId} {
+      allow get: if isSignedIn() && isValidId(contactId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(contactId) && isValidContact(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(contactId) && isValidContact(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(contactId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+    match /products/{productId} {
+      allow get: if isSignedIn() && isValidId(productId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(productId) && isValidProduct(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(productId) && isValidProduct(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(productId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+    match /expenses/{expenseId} {
+      allow get: if isSignedIn() && isValidId(expenseId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(expenseId) && isValidExpense(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(expenseId) && isValidExpense(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(expenseId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+    match /quotes/{quoteId} {
+      allow get: if isSignedIn() && isValidId(quoteId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(quoteId) && isValidQuote(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(quoteId) && isValidQuote(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(quoteId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+    match /creditNotes/{creditNoteId} {
+      allow get: if isSignedIn() && isValidId(creditNoteId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(creditNoteId) && isValidCreditNote(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(creditNoteId) && isValidCreditNote(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(creditNoteId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+
+    match /tasks/{taskId} {
+      allow get: if isSignedIn() && isValidId(taskId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(taskId) && isValidTask(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(taskId) && isValidTask(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(taskId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+
+    match /companyProfiles/{profileId} {
+      allow get: if isSignedIn() && isValidId(profileId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow create: if isSignedIn() && isValidId(profileId) && isValidCompanyProfile(request.resource.data) && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email || !('userId' in request.resource.data));
+      allow update: if isSignedIn() && isValidId(profileId) && isValidCompanyProfile(request.resource.data) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+      allow delete: if isSignedIn() && isValidId(profileId) && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email || !('userId' in resource.data));
+    }
+  }
+}

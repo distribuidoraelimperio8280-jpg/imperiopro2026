@@ -1,0 +1,52 @@
+{
+  "appId": "com.imperiopro.facturacion",
+  "productName": "Imperio Pro Facturación y Contabilidad",
+  "copyright": "Copyright © 2026 Distribuidora El Imperio. Todos los derechos reservados.",
+  "directories": {
+    "output": "release",
+    "buildResources": "assets"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "assets/**/*",
+    "public/**/*",
+    "package.json"
+  ],
+  "main": "electron/main.cjs",
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/icon.ico",
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Imperio Pro Facturación",
+    "uninstallDisplayName": "Desinstalar Imperio Pro Facturación y Contabilidad",
+    "installerLanguages": ["Spanish"]
+  },
+  "mac": {
+    "target": ["dmg", "zip"],
+    "category": "public.app-category.business",
+    "icon": "assets/icon.icns",
+    "artifactName": "${productName}-${version}.${ext}"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "icon": "assets/icons",
+    "category": "Office;Finance;",
+    "artifactName": "${productName}-${version}.${ext}"
+  }
+}

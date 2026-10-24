@@ -1,0 +1,6 @@
+{
+  "name": "IMPERIO PRO CONTABILIDAD",
+  "description": "Sistema de gestión empresarial, facturación electrónica, contabilidad, inventarios y logística con Google Maps.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

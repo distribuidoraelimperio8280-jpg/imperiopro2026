@@ -1,0 +1,240 @@
+{
+  "entities": {
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Factura comercial o de venta emitida en el sistema",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "type": { "type": "string", "enum": ["sale", "purchase"] },
+        "contactId": { "type": "string", "maxLength": 128 },
+        "contactName": { "type": "string", "maxLength": 200 },
+        "contactRuc": { "type": "string", "maxLength": 64 },
+        "contactDv": { "type": "string", "maxLength": 10 },
+        "contactAddress": { "type": "string", "maxLength": 500 },
+        "contactEmail": { "type": "string", "maxLength": 200 },
+        "contactPhone": { "type": "string", "maxLength": 50 },
+        "date": { "type": "string", "maxLength": 50 },
+        "dueDate": { "type": "string", "maxLength": 50 },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "taxTotal": { "type": "number" },
+        "discountTotal": { "type": "number" },
+        "total": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "pending", "overdue", "cancelled"] },
+        "paymentMethod": { "type": "string", "enum": ["cash", "transfer", "card", "credit"] },
+        "sellerName": { "type": "string", "maxLength": 200 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "isSynced": { "type": "boolean" },
+        "offlineCreated": { "type": "boolean" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 60 },
+        "updatedAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "code", "contactName", "total", "status"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "Cliente o proveedor registrado en la empresa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "rucOrCedula": { "type": "string", "maxLength": 64 },
+        "dv": { "type": "string", "maxLength": 10 },
+        "taxpayerType": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "phone2": { "type": "string", "maxLength": 50 },
+        "mobile": { "type": "string", "maxLength": 50 },
+        "whatsapp": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 500 },
+        "province": { "type": "string", "maxLength": 100 },
+        "district": { "type": "string", "maxLength": 100 },
+        "corregimiento": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["client", "provider", "both"] },
+        "creditLimit": { "type": "number" },
+        "paymentTerms": { "type": "string", "maxLength": 100 },
+        "priceList": { "type": "string", "maxLength": 100 },
+        "assignedSalesperson": { "type": "string", "maxLength": 200 },
+        "receivableAccount": { "type": "string", "maxLength": 100 },
+        "payableAccount": { "type": "string", "maxLength": 100 },
+        "taxWithholding": { "type": "string", "maxLength": 100 },
+        "associatedPeople": { "type": "array" },
+        "comments": { "type": "array" },
+        "sendAccountStatement": { "type": "boolean" },
+        "balance": { "type": "number" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 60 },
+        "updatedAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "name", "type"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Producto o servicio del inventario",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 250 },
+        "sku": { "type": "string", "maxLength": 64 },
+        "category": { "type": "string", "maxLength": 100 },
+        "unit": { "type": "string", "maxLength": 50 },
+        "price": { "type": "number" },
+        "cost": { "type": "number" },
+        "taxRate": { "type": "number" },
+        "type": { "type": "string", "enum": ["product", "service"] },
+        "material": { "type": "string", "maxLength": 100 },
+        "stock": { "type": "number" },
+        "minStockAlert": { "type": "number" },
+        "min_stock": { "type": "number" },
+        "description": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "image_url": { "type": "string", "maxLength": 2000 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 60 },
+        "updatedAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "name", "price", "stock"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Gasto operativo o de compras registrado",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "providerId": { "type": "string", "maxLength": 128 },
+        "providerName": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string", "maxLength": 50 },
+        "amount": { "type": "number" },
+        "taxAmount": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "paymentMethod": { "type": "string", "enum": ["cash", "transfer", "card", "credit"] },
+        "isSynced": { "type": "boolean" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "code", "providerName", "amount"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "Cotización comercial emitida",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "contactId": { "type": "string", "maxLength": 128 },
+        "contactName": { "type": "string", "maxLength": 200 },
+        "contactRuc": { "type": "string", "maxLength": 64 },
+        "contactDv": { "type": "string", "maxLength": 10 },
+        "contactPhone": { "type": "string", "maxLength": 50 },
+        "date": { "type": "string", "maxLength": 50 },
+        "validUntil": { "type": "string", "maxLength": 50 },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "taxTotal": { "type": "number" },
+        "discountTotal": { "type": "number" },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "converted"] },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 60 },
+        "updatedAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "code", "contactName", "total", "status"]
+    },
+    "CreditNote": {
+      "title": "CreditNote",
+      "description": "Nota de crédito emitida",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "invoiceId": { "type": "string", "maxLength": 128 },
+        "invoiceCode": { "type": "string", "maxLength": 64 },
+        "contactId": { "type": "string", "maxLength": 128 },
+        "contactName": { "type": "string", "maxLength": 200 },
+        "contactRuc": { "type": "string", "maxLength": 64 },
+        "contactDv": { "type": "string", "maxLength": 10 },
+        "contactPhone": { "type": "string", "maxLength": 50 },
+        "date": { "type": "string", "maxLength": 50 },
+        "reason": { "type": "string", "maxLength": 500 },
+        "adjustInventory": { "type": "boolean" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "taxTotal": { "type": "number" },
+        "total": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "maxLength": 60 },
+        "updatedAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "code", "contactName", "total", "reason"]
+    },
+    "CompanyProfile": {
+      "title": "CompanyProfile",
+      "description": "Configuración del perfil fiscal y comercial de la empresa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "ruc": { "type": "string", "maxLength": 64 },
+        "dv": { "type": "string", "maxLength": 10 },
+        "ownerName": { "type": "string", "maxLength": 200 },
+        "whatsapp": { "type": "string", "maxLength": 50 },
+        "mobile": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "address": { "type": "string", "maxLength": 500 },
+        "currency": { "type": "string", "maxLength": 20 },
+        "taxName": { "type": "string", "maxLength": 100 },
+        "logoUrl": { "type": "string", "maxLength": 2000 },
+        "templateConfig": { "type": "object" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 200 },
+        "updatedAt": { "type": "string", "maxLength": 60 }
+      },
+      "required": ["id", "name", "ruc", "email"]
+    }
+  },
+  "firestore": {
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Colección de facturas de venta y compra"
+    },
+    "/contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "Colección de clientes y proveedores"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catálogo de productos y servicios"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Registro de gastos operativos"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "Quote",
+      "description": "Cotizaciones comerciales"
+    },
+    "/creditNotes/{creditNoteId}": {
+      "schema": "CreditNote",
+      "description": "Notas de crédito fiscales"
+    },
+    "/companyProfiles/{profileId}": {
+      "schema": "CompanyProfile",
+      "description": "Perfiles de empresa vinculados"
+    }
+  }
+}

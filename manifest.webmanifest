@@ -1,0 +1,101 @@
+{
+  "id": "/",
+  "name": "IMPERIO PRO CONTABILIDAD",
+  "short_name": "Imperio Pro",
+  "description": "Sistema de gestión empresarial, facturación electrónica, contabilidad, inventarios y logística con Google Maps.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0284C7",
+  "background_color": "#0F172A",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nueva Factura",
+      "short_name": "Facturar",
+      "description": "Crear una nueva factura fiscal o comprobante de venta",
+      "url": "/?action=new-invoice",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Gestión de Clientes",
+      "short_name": "Clientes",
+      "description": "Administrar cartera de clientes y cuentas por cobrar",
+      "url": "/?view=contacts",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Catálogo de Inventario",
+      "short_name": "Inventario",
+      "description": "Consultar lista de productos, stock y precios",
+      "url": "/?view=items",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Reportes y Auditoría",
+      "short_name": "Reportes",
+      "description": "Consultar estado de resultados, balances y ventas",
+      "url": "/?view=reports",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
